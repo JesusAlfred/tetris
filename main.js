@@ -1,6 +1,6 @@
 import "./style.css";
 
-const GAME_VELOCITY = 1;
+let GAME_VELOCITY = 5;
 const BLOCK_SIZE = 20;
 const BOARD_WIDTH = 14;
 const BOARD_HEIGHT = 30;
@@ -10,8 +10,10 @@ const SHAPES = [
     x: null,
     y: null,
     shape: [
-      [1, 1],
-      [1, 1],
+      [0, 1, 1, 0],
+      [0, 1, 1, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
     ],
   },
   {
@@ -28,53 +30,81 @@ const SHAPES = [
     x: null,
     y: null,
     shape: [
-      [0, 3, 0],
-      [3, 3, 3],
-      [0, 0, 0],
+      [0, 3, 0, 0],
+      [3, 3, 3, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
     ],
   },
   {
     x: null,
     y: null,
     shape: [
-      [4, 4, 0],
-      [0, 4, 4],
+      [4, 4, 0, 0],
+      [0, 4, 4, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
     ],
   },
   {
     x: null,
     y: null,
     shape: [
-      [0, 5, 5],
-      [5, 5, 0],
+      [0, 5, 5, 0],
+      [5, 5, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
     ],
   },
 ];
 
+let nextShape = null
+
 let board = [];
 createBoard();
 
-const canvas = document.querySelector("canvas");
+const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
+
+const nextShapeCanva = document.querySelector("#nextShape")
+const nextShapectx = nextShapeCanva.getContext("2d");
+
+
 
 canvas.width = BLOCK_SIZE * BOARD_WIDTH;
 canvas.height = BLOCK_SIZE * BOARD_HEIGHT;
 
+nextShapeCanva.width = BLOCK_SIZE * 4
+nextShapeCanva.height = BLOCK_SIZE * 4
+
 ctx.scale(BLOCK_SIZE, BLOCK_SIZE);
+nextShapectx.scale(BLOCK_SIZE, BLOCK_SIZE);
 
 let shape = null;
 
+
 function newShape() {
   shape = getShape();
+  let alive = true
   shape.x = Math.floor(BOARD_WIDTH / 2 - shape.shape[0].length / 2);
   shape.y = 0;
   shape.shape.forEach((row, y) => {
     row.forEach((val, x) => {
       if (val !== 0) {
-        board[y + shape.y][x + shape.x] = val;
+        if (board[y + shape.y][x + shape.x] !== 0) {
+          alive = false
+        }
+        else {
+          board[y + shape.y][x + shape.x] = val;
+        }
       }
     });
   });
+  if (!alive){
+    createBoard()
+    newShape()
+    GAME_VELOCITY = 5
+  }
 }
 
 function clearCompleteRows() {
@@ -102,13 +132,14 @@ update();
 
 function update(time) {
   const deltaTime = time - lastTime;
-  if (deltaTime >= 1000 * GAME_VELOCITY) {
+  if (deltaTime >= 1000 / GAME_VELOCITY) {
     lastTime = time;
     if (canFall(shape)) {
       moveShape(shape);
     } else {
       clearCompleteRows();
       newShape();
+      GAME_VELOCITY += 0.2
     }
   }
 
@@ -272,19 +303,19 @@ function draw() {
       const v = Math.floor(val);
       switch (v) {
         case 0:
-          color = "rgb(60,60,60)";
+          color = "rgb(60, 60, 60)";
           break;
         case 1:
-          color = "rgb(200,0,0)";
+          color = "rgb(255, 173, 96)";
           break;
         case 2:
-          color = "rgb(0,200,0)";
+          color = "rgb(255, 238, 173)";
           break;
         case 3:
-          color = "rgb(0,0,200)";
+          color = "rgb(150, 206, 180)";
           break;
         case 4:
-          color = "rgb(0,200,200)";
+          color = "rgb(160, 35, 52)";
           break;
         case 5:
           color = "rgb(200,0,200)";
@@ -297,11 +328,56 @@ function draw() {
 }
 
 function getShape() {
-  const r = Math.floor(Math.random() * (5 - 0));
-  return SHAPES[r];
+  let r = Math.floor(Math.random() * (5 - 0));
+  let retShape = null
+  if(nextShape === null) {
+    nextShape = structuredClone(SHAPES[r])
+    r = Math.floor(Math.random() * (5 - 0));
+    retShape = structuredClone(SHAPES[r])
+  }
+  else {
+    retShape = nextShape
+    nextShape = structuredClone(SHAPES[r])
+  }
+  
+  printNextShape(nextShape.shape)
+
+  return retShape;
+}
+
+function printNextShape(shape){
+  shape.forEach((row, y) => {
+    row.forEach((val, x) => {
+      let color = null;
+      const v = val;
+      switch (v) {
+        case 0:
+          color = "rgb(60, 60, 60)";
+          break;
+        case 1:
+          color = "rgb(255, 173, 96)";
+          break;
+        case 2:
+          color = "rgb(255, 238, 173)";
+          break;
+        case 3:
+          color = "rgb(150, 206, 180)";
+          break;
+        case 4:
+          color = "rgb(160, 35, 52)";
+          break;
+        case 5:
+          color = "rgb(200,0,200)";
+          break;
+      }
+      nextShapectx.fillStyle = color;
+      nextShapectx.fillRect(x, y, 1, 1);
+    });
+  });
 }
 
 function createBoard() {
+  board = []
   for (let row = 0; row < BOARD_HEIGHT; row++) {
     board.push([]);
     for (let column = 0; column < BOARD_WIDTH; column++) {
